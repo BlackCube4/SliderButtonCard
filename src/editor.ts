@@ -121,13 +121,18 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
             <input type="checkbox" id="entity" class="tab-checkbox">
             <label class="tab-label" for="entity">General</label>
             <div class="tab-content">
-              <ha-entity-picker
+              <ha-selector
                 .hass=${this.hass}
-                .includeDomains=${getEnumValues(Domain)}
+                .selector=${{
+                  entity: {
+                    domain: getEnumValues(Domain),
+                  }
+                }}
+                label="Entity"
                 .value=${this._entity}
                 .configValue=${'entity'}
-                @change=${this._valueChangedEntity}
-              ></ha-entity-picker>
+                @value-changed=${this._valueChangedEntity}
+              ></ha-selector>
               
               <ha-textfield
                 label="Name"
@@ -448,8 +453,8 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
 
   private _valueChangedEntity(ev): void {
     const target = ev.target;
-    const value = ev.target?.value;
-    if (!value) {
+    const value = ev.detail?.value !== undefined ? ev.detail.value : ev.target?.value;
+    if (value === undefined || value === null) {
       return;
     }
     const updateDefaults = computeDomain(value) !== computeDomain(this._config?.entity || 'light.dummy');
