@@ -59,17 +59,18 @@ export abstract class Controller {
     return this.stateObj.attributes?.icon ? this.stateObj.attributes.icon : domainIcon(this.domain, this.stateObj.state);
   }
 
+  /** Rundet einen Wert auf das eingestellte Step-Raster (z.B. Step 5 → 0, 5, 10, ...). */
+  protected roundToStep(value: number): number {
+    return Math.round(value / this.step) * this.step;
+  }
+
   get value(): number {
-    if (this._value) {
-      return Math.round(this._value / this.step) * this.step;
-    }
-    return this.min;
+    return this._value ? this.roundToStep(this._value) : this.min;
   }
 
   set value(value: number) {
     if (value !== this.value) {
       this._value = value;
-      // this._value = Math.round(value / this.step) * this.step;
     }
   }
 
@@ -78,14 +79,7 @@ export abstract class Controller {
   }
 
   get originalValue(): number {
-    //return this.originalValue;
-    if (this._originalValue === 0) {
-      return 0;
-    }
-    if (this._originalValue) {
-      return Math.round(this._originalValue / this.step) * this.step;
-    }
-    return 0;
+    return this._originalValue ? this.roundToStep(this._originalValue) : 0;
   }
 
   get originalValueLock(): boolean {
@@ -104,14 +98,7 @@ export abstract class Controller {
   }
 
   get clickPosition(): number {
-    //return this.clickPosition;
-    if (this._clickPosition === 0) {
-      return 0;
-    }
-    if (this._clickPosition) {
-      return Math.round(this._clickPosition / this.step) * this.step;
-    }
-    return 0;
+    return this._clickPosition ? this.roundToStep(this._clickPosition) : 0;
   }
 
   get clickPositionLock(): boolean {
@@ -130,18 +117,14 @@ export abstract class Controller {
       return 0;
     }
     if (this._targetValue) {
-      return Math.round(this._targetValue / this.step) * this.step;
+      return this.roundToStep(this._targetValue);
     }
-    if (this.value) {
-      return this.value;
-    }
-    return 0;
+    return this.value || 0;
   }
 
   set targetValue(value: number) {
     if (value !== this.targetValue) {
       this._targetValue = value;
-      // this._targetValue = Math.round(value / this.step) * this.step;
     }
   }
 
@@ -255,11 +238,11 @@ export abstract class Controller {
           ? 'var(--paper-item-icon-color, #44739e)'
           : this.iconColorBackup;
       case 'custom':
-        return this.percentage == 0 
-          ? 'var(--paper-item-icon-color, #44739e)'
-          : this._config.icon?.color || 'inherit';
+        // Wie der Slider: die Custom-Farbe gilt immer (auch bei Position 0),
+        // nicht nur wenn die Entität "an" ist.
+        return this._config.icon?.color || 'inherit';
       default:
-        return '';
+        return 'var(--primary-color)';
     }
   }
 
@@ -302,7 +285,7 @@ export abstract class Controller {
           : this._config.slider?.color || 'inherit';
         
       default:
-        return 'inherit';
+        return 'var(--primary-color)';
     }
   }
 
@@ -317,49 +300,18 @@ export abstract class Controller {
   }
 
   calcMovementPercentage(event: any, {left, top, width, height}): number {
-    let percentage;
-    switch(this._config.slider?.direction) {
-      case SliderDirection.LEFT_RIGHT:
-        percentage = toPercentage(
-          event.clientX,
-          left,
-          left + width
-        );
-        if (this.invert) {
-          percentage = 100 - percentage;
-        }
-        break
-      case SliderDirection.RIGHT_LEFT:
-        percentage = toPercentage(
-          event.clientX,
-          left,
-          left + width
-        );
-        if (!this.invert) {
-          percentage = 100 - percentage;
-        }
-        break
-      case SliderDirection.TOP_BOTTOM:
-        percentage = toPercentage(
-          event.clientY,
-          top,
-          top + height
-        );
-        if (this.invert) {
-          percentage = 100 - percentage;
-        }
-        break
-      case SliderDirection.BOTTOM_TOP:
-        percentage = toPercentage(
-          event.clientY,
-          top,
-          top + height
-        );
-        if (!this.invert) {
-          percentage = 100 - percentage;
-        }
-        break
+    const direction = this._config.slider?.direction;
+    const isVertical = direction === SliderDirection.TOP_BOTTOM || direction === SliderDirection.BOTTOM_TOP;
+    // "Umgekehrte" Richtungen laufen entgegen der normalen Achse (rechts→links, unten→oben)
+    const isReversed = direction === SliderDirection.RIGHT_LEFT || direction === SliderDirection.BOTTOM_TOP;
 
+    let percentage = isVertical
+      ? toPercentage(event.clientY, top, top + height)
+      : toPercentage(event.clientX, left, left + width);
+
+    // Skala spiegeln, wenn genau eines von beiden (Richtung ODER invert) umgekehrt ist
+    if (this.invert !== isReversed) {
+      percentage = 100 - percentage;
     }
     return percentage;
   }

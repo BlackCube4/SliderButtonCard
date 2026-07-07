@@ -49,7 +49,7 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
   }
 
   get _compact(): boolean {
-    return typeof this._config?.compact !== 'boolean' ? false : this._config?.compact;
+    return typeof this._config?.compact !== 'boolean' ? true : this._config?.compact;
   }
 
   get _entity(): string {
@@ -101,7 +101,7 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
         }}
         label=${label}
         .value=${value}
-        .required=${false}
+        .required=${true}
         .configValue=${configValue}
         @value-changed=${this._valueChangedSelect}
       >
@@ -416,24 +416,40 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
   protected renderColorMode(path: string): TemplateResult | void {
     const item = this[`_${path}`];
     return html`
-      <div class="side-by-side">
+      <div class="side-by-side color-row">
         ${this._renderOptionSelector(
           `${path}.color_mode`,
           this.colorModes.map(color_mode => {
             return {'value': color_mode, 'label': color_mode}
           }), 'Color Mode',
-          item.color_mode || ''
+          item.color_mode || ColorMode.DEFAULT
         )}
-        ${item.color_mode === 'custom' ? html`
-          <ha-textfield
-            .value=${item.color || ''}
-            .configValue="${path}.color"
-            @input=${this._valueChanged}
+        ${item.color_mode === ColorMode.CUSTOM ? html`
+          <input
             type="color"
-          ></ha-textfield>
+            class="color-swatch"
+            .value=${this._toHexColor(item.color)}
+            .configValue="${path}.color"
+            @input=${this._colorChanged}
+          />
         ` : ''}
       </div>
     `;
+  }
+
+  /** Wandelt einen beliebigen CSS-Farbwert (hex, rgb(), Name, var(...)) in #rrggbb für den Farbwähler um. */
+  private _toHexColor(color?: string): string {
+    if (!color) {
+      return '#000000';
+    }
+    const ctx = document.createElement('canvas').getContext('2d');
+    if (!ctx) {
+      return '#000000';
+    }
+    ctx.fillStyle = '#000000';
+    ctx.fillStyle = color;
+    const computed = ctx.fillStyle;
+    return /^#[0-9a-f]{6}$/i.test(computed) ? computed : '#000000';
   }
 
   private _initialize(): void {
@@ -476,6 +492,12 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
     this._changeValue(target.configValue, target.checked !== undefined ? target.checked : value);
   }
 
+  // Farb-Input: gezielt `.value` lesen. Ein natives <input type="color"> hat immer eine
+  // `checked`-Property (Default false), daher nicht den generischen _valueChanged verwenden.
+  private _colorChanged(ev): void {
+    this._changeValue(ev.target.configValue, ev.target.value);
+  }
+
   private _changeValue(configValue: string, value: string | boolean | number): void {
     if (!this._config || !this.hass) {
       return;
@@ -515,6 +537,34 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
       .side-by-side > *:last-child {
         flex: 1;
         padding-right: 0;
+      }
+      /* Color-Mode-Dropdown und Farbwähler oben am Raster ausrichten */
+      .color-row {
+        align-items: flex-start;
+      }
+      /* Nativer Farbwähler als volle Grid-Zelle, gleiche Höhe wie die ha-select-Felder */
+      .color-swatch {
+        width: 100%;
+        height: 56px;
+        padding: 0;
+        border: none;
+        border-radius: 4px;
+        background: none;
+        cursor: pointer;
+        box-sizing: border-box;
+        -webkit-appearance: none;
+        appearance: none;
+      }
+      .color-swatch::-webkit-color-swatch-wrapper {
+        padding: 0;
+      }
+      .color-swatch::-webkit-color-swatch {
+        border: none;
+        border-radius: 4px;
+      }
+      .color-swatch::-moz-color-swatch {
+        border: none;
+        border-radius: 4px;
       }
       .suffix {
         margin: 0 8px;

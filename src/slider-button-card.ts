@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/camelcase */
-import { ActionHandlerEvent, applyThemesOnElement, computeStateDomain, hasConfigOrEntityChanged, HomeAssistant, LovelaceCard, LovelaceCardEditor } from './ha-helpers';
+import { ActionHandlerEvent, applyThemesOnElement, computeDomain, computeStateDomain, hasConfigOrEntityChanged, HomeAssistant, LovelaceCard, LovelaceCardEditor } from './ha-helpers';
 import { css, html, LitElement, PropertyValues, TemplateResult, CSSResultGroup } from 'lit';
 import { customElement, eventOptions, property, query, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
@@ -10,8 +10,8 @@ import { Controller } from './controllers/controller';
 import { ControllerFactory } from './controllers/get-controller';
 import './editor';
 import type { SliderButtonCardConfig } from './types';
-import { ActionButtonConfigDefault, IconConfigDefault, SliderDirection } from './types';
-import { getSliderDefaultForEntity, normalize } from './utils';
+import { ActionButtonConfigDefault, Domain, IconConfigDefault, SliderDirection } from './types';
+import { getEnumValues, getSliderDefaultForEntity, normalize } from './utils';
 
 // This prints card name and verison to console
 console.info(
@@ -28,13 +28,32 @@ console.info(
   name: 'SliderButtonCard',
   description: 'A button card with slider',
   preview: true,
+  // Ab Home Assistant 2026.6: schlägt die Karte vor, wenn man beim Hinzufügen
+  // zuerst eine passende Entität (Licht, Rollo, Ventilator, ...) auswählt.
+  getEntitySuggestion: (_hass: HomeAssistant, entityId: string) => {
+    const domain = computeDomain(entityId);
+    if (!getEnumValues(Domain).includes(domain)) {
+      return null;
+    }
+    return {
+      config: {
+        type: 'custom:slider-button-card',
+        entity: entityId,
+        slider: getSliderDefaultForEntity(entityId),
+        show_name: true,
+        show_state: true,
+        compact: true,
+        icon: structuredClone(IconConfigDefault),
+        action_button: structuredClone(ActionButtonConfigDefault),
+      },
+    };
+  },
 });
 
 @customElement('slider-button-card')
 export class SliderButtonCard extends LitElement implements LovelaceCard {
   @property({attribute: false}) public hass!: HomeAssistant;
   @state() private config!: SliderButtonCardConfig;
-  @query('.state') stateText;
   @query('.button') button;
   @query('.action') action;
   @query('.slider') slider;
@@ -64,7 +83,7 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
       slider: getSliderDefaultForEntity(entity),
       show_name: true,
       show_state: true,
-      compact: false,
+      compact: true,
       icon: structuredClone(IconConfigDefault),
       action_button: structuredClone(ActionButtonConfigDefault),
     };
@@ -87,7 +106,7 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
       icon: structuredClone(IconConfigDefault),
       show_name: true,
       show_state: true,
-      compact: false,
+      compact: true,
       action_button: structuredClone(ActionButtonConfigDefault),
       debug: false,
       ...config
@@ -112,7 +131,12 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
   }
 
   protected updated(changedProps: PropertyValues): void {
-    this.updateValue(this.ctrl.value, false);
+    // Während des Ziehens NICHT mit dem Entitätswert überschreiben – sonst würde der
+    // Slider mitten im Drag auf den echten Wert zurückspringen (render() zeigt bei
+    // gehaltenem Lock den gezogenen Wert an).
+    if (!this.ctrl.originalValueLock) {
+      this.updateValue(this.ctrl.value, false);
+    }
     const oldHass = changedProps.get('hass') as HomeAssistant | undefined;
     const oldConfig = changedProps.get('config') as
       | SliderButtonCardConfig
@@ -134,6 +158,12 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
     this.ctrl.hass = this.hass;
     if (!this.ctrl.stateObj) {
       return this._showError('Error loading slider-button-card');
+    }
+
+    // Solange nicht aktiv gezogen wird, den angezeigten Wert live mit der Entität
+    // synchronisieren – so zeigen Slider UND Label (Prozent-Zahl) immer den aktuellen Stand.
+    if (!this.ctrl.originalValueLock) {
+      this.ctrl.targetValue = this.ctrl.value;
     }
 
     const { config, ctrl } = this;
@@ -292,7 +322,6 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
     element.addEventListener("pointerup", () => {
       if (!isDown) return;
       isDown = false;
-      const now = Date.now();
       const wasHeld = !this.holdTimer;
       if (this.holdTimer) {
         clearTimeout(this.holdTimer);
@@ -304,23 +333,9 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
         !!config?.double_tap_action &&
         config.double_tap_action.action !== "none";
 
-      if (hasDoubleTapAction) {
-        if (now - this.lastTapTime < this.DOUBLE_CLICK_DELAY) {
-          this._handleAction({ detail: { action: "double_tap" } } as any, config);
-          this.lastTapTime = 0;
-        } else {
-          this.lastTapTime = now;
-          window.setTimeout(() => {
-            if (Date.now() - this.lastTapTime >= this.DOUBLE_CLICK_DELAY && this.lastTapTime !== 0) {
-              this._handleAction({ detail: { action: "tap" } } as any, config);
-              this.lastTapTime = 0;
-            }
-          }, this.DOUBLE_CLICK_DELAY);
-        }
-      } else {
-        this._handleAction({ detail: { action: "tap" } } as any, config);
-        this.lastTapTime = now;
-      }
+      this.handleTapOrDoubleTap(hasDoubleTapAction, (action) =>
+        this._handleAction({ detail: { action } } as any, config)
+      );
     });
   }
 
@@ -406,6 +421,33 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
     this._executeAction(actionConfig);
   }
 
+  /**
+   * Entscheidet bei einem Klick zwischen "tap" und "double_tap" und ruft `run` mit der
+   * erkannten Aktion auf. Ist kein Double-Tap konfiguriert, wird sofort "tap" ausgelöst;
+   * sonst wird kurz (DOUBLE_CLICK_DELAY) auf einen zweiten Klick gewartet.
+   * Wird von Icon, Action-Button und Slider gemeinsam genutzt.
+   */
+  private handleTapOrDoubleTap(hasDoubleTapAction: boolean, run: (action: 'tap' | 'double_tap') => void): void {
+    const now = Date.now();
+    if (!hasDoubleTapAction) {
+      run('tap');
+      this.lastTapTime = now;
+      return;
+    }
+    if (now - this.lastTapTime < this.DOUBLE_CLICK_DELAY) {
+      run('double_tap');
+      this.lastTapTime = 0;
+    } else {
+      this.lastTapTime = now;
+      window.setTimeout(() => {
+        if (this.lastTapTime !== 0 && Date.now() - this.lastTapTime >= this.DOUBLE_CLICK_DELAY) {
+          run('tap');
+          this.lastTapTime = 0;
+        }
+      }, this.DOUBLE_CLICK_DELAY);
+    }
+  }
+
   private _sliderAction(ev: ActionHandlerEvent, config): void {
     if (this.everLeftMaxDist){return;}
     if (this.hass && this.config && ev.detail.action) {
@@ -455,9 +497,6 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
         this.button.classList.add('off');
       }
     }
-    if (this.stateText) {
-      this.stateText.innerHTML = this.ctrl.isUnavailable ? `${this.hass.localize('state.default.unavailable')}` : this.ctrl.label;
-    }
     this.button.style.setProperty('--slider-value', `${this.ctrl.percentage}%`);
     this.button.style.setProperty('--slider-bg-filter', this.ctrl.style.slider.filter);
     this.button.style.setProperty('--slider-color', this.ctrl.style.slider.color);
@@ -493,8 +532,6 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
       event.preventDefault();
     }
 
-    // event.stopPropagation();
-
     this.lastPointerId = event.pointerId;
     this.slider.setPointerCapture(event.pointerId);
 
@@ -504,15 +541,11 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
       }
     }, this.HOLD_TIME);
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    let oldPercentage;
-    if (this.ctrl.originalValueLock != true) {
+    // Startwert merken: der Slider wird beim Ziehen relativ zu diesem Wert bewegt
+    if (!this.ctrl.originalValueLock) {
       this.ctrl.originalValue = this.ctrl.value;
       this.ctrl.originalValueLock = true;
     }
-    
-    // eslint-disable-next-line prefer-const
-    oldPercentage = this.ctrl.originalValue;
 
     this.everLeftMaxDist = false;
     this.startX = event.clientX;
@@ -559,28 +592,20 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
 
       const percentage = this.ctrl.moveSlider(event, {left, top, width, height});
 
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      let clickPosition;
-      if (this.ctrl.clickPositionLock != true)
-      {
+      // Greifpunkt merken: die Position unter dem Finger beim ersten Bewegen
+      if (!this.ctrl.clickPositionLock) {
         this.ctrl.clickPosition = percentage;
         this.ctrl.clickPositionLock = true;
       }
-      // eslint-disable-next-line prefer-const
-      clickPosition = this.ctrl.clickPosition;
 
-      // eslint-disable-next-line prefer-const
-      let delta = this.ctrl.clickPosition - percentage;
-      let newPercentage = this.ctrl.originalValue - delta;
-      newPercentage = normalize(newPercentage, this.ctrl.min, this.ctrl.max)
-
-      //console.log('oldPercentage', this.ctrl.originalValue);
-      //console.log('clickPosition', clickPosition);
-      //console.log('onPointerMove', percentage);
-      //console.log('delta', delta);
-      //console.log('newPercentage', newPercentage);
+      // Relativ ziehen: neue Position = Startwert + zurückgelegte Strecke seit dem Greifpunkt
+      const delta = this.ctrl.clickPosition - percentage;
+      const newPercentage = normalize(this.ctrl.originalValue - delta, this.ctrl.min, this.ctrl.max);
 
       this.updateValue(newPercentage);
+      // Während des Ziehens rendert Lit nicht von selbst neu → Label (Prozent-Zahl)
+      // per requestUpdate aktualisieren; der Slider folgt über --slider-value ohnehin live.
+      this.requestUpdate();
     }
   }
 
@@ -615,32 +640,13 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
       return;
     }
     this.everLeftMaxDist = false;
-    
+
     // --- handle click & double clicks ---
-    const now = Date.now();
     const hasDoubleTapAction = !!this.config.slider?.double_tap_action && this.config.slider.double_tap_action.action !== 'none';
 
-    if (hasDoubleTapAction) {
-      // Wait to see if a second click occurs within the delay
-      if (now - this.lastTapTime < this.DOUBLE_CLICK_DELAY) {
-        this._sliderAction({ detail: { action: 'double_tap' } } as any, this.config.slider);
-        this.lastTapTime = 0;
-      } else {
-        this.lastTapTime = now;
-
-        // Trigger click only after delay expires (in case of double tap)
-        window.setTimeout(() => {
-          if (Date.now() - this.lastTapTime >= this.DOUBLE_CLICK_DELAY && this.lastTapTime !== 0) {
-            this._sliderAction({ detail: { action: 'tap' } } as any, this.config.slider);
-            this.lastTapTime = 0;
-          }
-        }, this.DOUBLE_CLICK_DELAY);
-      }
-    } else {
-      // No double-tap configured → trigger tap immediately
-      this._sliderAction({ detail: { action: 'tap' } } as any, this.config.slider);
-      this.lastTapTime = now;
-    }
+    this.handleTapOrDoubleTap(hasDoubleTapAction, (action) =>
+      this._sliderAction({ detail: { action } } as any, this.config.slider)
+    );
   }
 
   
@@ -679,12 +685,12 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
         line-height: 0;
       }
       :host {
-        --slider-bg-default-color: var(--primary-color, rgb(95, 124, 171));
         --slider-bg: var(--slider-color);
         --slider-bg-filter: brightness(100%);
         --slider-bg-direction: to right;
         --slider-value: 0%;
-        --slider-transition-duration: 1s;      
+        --slider-transition-duration: 1s;             /* Farbe/Helligkeit: weicher Übergang */
+        --slider-thumb-transition-duration: 0.2s;     /* Slider-Position: folgt der Entität live */
         --icon-filter: brightness(100%);
         --icon-color: var(--paper-item-icon-color);
         --btn-bg-color-off: rgba(43,55,78,1);
@@ -895,7 +901,7 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
         height: 100.5%;      
         transform: translateX(var(--slider-value));
         background: transparent;
-        transition: transform var(--slider-transition-duration);
+        transition: transform var(--slider-thumb-transition-duration);
       }
       .changing .slider .slider-thumb {
         transition: none;
