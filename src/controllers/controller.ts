@@ -238,9 +238,9 @@ export abstract class Controller {
           ? 'var(--paper-item-icon-color, #44739e)'
           : this.iconColorBackup;
       case 'custom':
-        // Wie der Slider: die Custom-Farbe gilt immer (auch bei Position 0),
-        // nicht nur wenn die Entität "an" ist.
-        return this._config.icon?.color || 'inherit';
+        return this.percentage == 0
+          ? 'var(--paper-item-icon-color, #44739e)'
+          : this._config.icon?.color || 'inherit';
       default:
         return 'var(--primary-color)';
     }
