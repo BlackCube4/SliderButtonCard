@@ -39,11 +39,13 @@ console.info(
       config: {
         type: 'custom:slider-button-card',
         entity: entityId,
+        // Icon nutzt denselben Standard-Farbmodus wie der Slider der Domain
+        // (z.B. beide "state" bei Lichtern, sonst beide "default").
         slider: getSliderDefaultForEntity(entityId),
         show_name: true,
         show_state: true,
         compact: true,
-        icon: structuredClone(IconConfigDefault),
+        icon: { ...structuredClone(IconConfigDefault), color_mode: getSliderDefaultForEntity(entityId).color_mode },
         action_button: structuredClone(ActionButtonConfigDefault),
       },
     };
@@ -93,7 +95,7 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
       show_name: true,
       show_state: true,
       compact: true,
-      icon: structuredClone(IconConfigDefault),
+      icon: { ...structuredClone(IconConfigDefault), color_mode: getSliderDefaultForEntity(entity).color_mode },
       action_button: structuredClone(ActionButtonConfigDefault),
     };
   }
@@ -112,7 +114,7 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
 
     this.config = {
       slider: getSliderDefaultForEntity(config.entity),
-      icon: structuredClone(IconConfigDefault),
+      icon: { ...structuredClone(IconConfigDefault), color_mode: getSliderDefaultForEntity(config.entity).color_mode },
       show_name: true,
       show_state: true,
       compact: true,

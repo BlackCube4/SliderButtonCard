@@ -139,7 +139,7 @@ export const ActionButtonConfigDefault: ActionButtonConfig = {
 
 export const IconConfigDefault: IconConfig = {
   show: true,
-  color_mode: ColorMode.STATE,
+  color_mode: ColorMode.DEFAULT,
   use_brightness: false,
   tap_action: {
     action: 'more-info'
