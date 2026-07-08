@@ -317,7 +317,7 @@ export abstract class Controller {
   }
 
   applyStep(value: number): number {
-    return  Math.round(value / this.step) * this.step;
+    return this.roundToStep(value);
   }
 
   log(name = '', value: string | number | object = ''): void {

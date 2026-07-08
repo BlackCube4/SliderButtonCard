@@ -55,6 +55,21 @@ export class FanController extends Controller {
     return this.hasSlider ? 100 : 1;
   }
 
+  /**
+   * HA rundet Prozentwerte bei gestuften Lüftern nicht auf die nächstgelegene Stufe,
+   * sondern wählt die erste Stufe, deren obere Grenze den Wert noch abdeckt
+   * (percentage_to_ordered_list_item in HA-Core, ceiling-basiert). Math.round würde
+   * beim Ziehen einen anderen Wert anzeigen als den, der am Ende gesetzt wird.
+   */
+  protected roundToStep(value: number): number {
+    if (!this.hasSlider || value <= 0) {
+      return super.roundToStep(value);
+    }
+    const speedCount = Math.round(100 / this.step);
+    const speedIndex = Math.min(speedCount, Math.max(1, Math.ceil(value / this.step)));
+    return Math.round((speedIndex / speedCount) * 100);
+  }
+
   get iconRotateSpeed(): string {
     let speed = 0;
     if (this.hasSlider) {

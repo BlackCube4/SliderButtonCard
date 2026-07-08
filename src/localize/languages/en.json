@@ -1,0 +1,82 @@
+{
+  "common": {
+    "version": "v",
+    "invalid_configuration": "Invalid configuration",
+    "show_warning": "Show Warning",
+    "show_error": "Show Error"
+  },
+  "tabs": {
+    "general": {
+      "title": "General",
+      "entity": "Entity",
+      "attribute": "Attribute",
+      "name": "Name",
+      "show_name": "Show Name",
+      "show_state": "Show State",
+      "show_attribute": "Show Attribute",
+      "compact": "Compact Mode",
+      "scale_on_press": "Scale On Press"
+    },
+    "icon": {
+      "title": "Icon",
+      "icon": "Icon",
+      "show_icon": "Show Icon",
+      "use_brightness": "Use Brightness",
+      "tap_action": "Tap Action",
+      "hold_action": "Hold Action",
+      "double_tap_action": "Double Tap Action"
+    },
+    "slider": {
+      "title": "Slider",
+      "direction": "Direction",
+      "background": "Background",
+      "min_value": "Min Value",
+      "max_value": "Max Value",
+      "transition": "Transition (s)",
+      "use_brightness": "Use Brightness",
+      "show_track": "Show Track",
+      "disable_sliding": "Disable Sliding",
+      "immediate_update": "Immediate Update",
+      "tap_action": "Tap Action",
+      "hold_action": "Hold Action",
+      "double_tap_action": "Double Tap Action"
+    },
+    "action_button": {
+      "title": "Action Button",
+      "mode": "Mode",
+      "icon": "Icon",
+      "show_button": "Show Button",
+      "show_spinner": "Show Spinner",
+      "tap_action": "Tap Action",
+      "hold_action": "Hold Action",
+      "double_tap_action": "Double Tap Action"
+    }
+  },
+  "state": {
+    "off": "Off",
+    "on": "On"
+  },
+  "direction": {
+    "left-right": "Left to right",
+    "right-left": "Right to left",
+    "top-bottom": "Top to bottom",
+    "bottom-top": "Bottom to top"
+  },
+  "background": {
+    "striped": "Striped",
+    "gradient": "Gradient",
+    "solid": "Solid",
+    "triangle": "Triangle",
+    "custom": "Custom"
+  },
+  "mode": {
+    "toggle": "Toggle",
+    "custom": "Custom"
+  },
+  "color_mode": {
+    "label": "Color Mode",
+    "default": "Default theme",
+    "state": "State color",
+    "custom": "Custom color"
+  }
+}

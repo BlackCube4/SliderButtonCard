@@ -1,0 +1,82 @@
+{
+  "common": {
+    "version": "v",
+    "invalid_configuration": "Ungültige Konfiguration",
+    "show_warning": "Zeige Warnung",
+    "show_error": "Zeige Fehler"
+  },
+  "tabs": {
+    "general": {
+      "title": "Allgemein",
+      "entity": "Entität",
+      "attribute": "Attribut",
+      "name": "Name",
+      "show_name": "Namen anzeigen",
+      "show_state": "Zustand anzeigen",
+      "show_attribute": "Attribut anzeigen",
+      "compact": "Kompakt",
+      "scale_on_press": "Beim Drücken skalieren"
+    },
+    "icon": {
+      "title": "Icon",
+      "icon": "Icon",
+      "show_icon": "Icon anzeigen",
+      "use_brightness": "Helligkeit benutzen",
+      "tap_action": "Tap-Aktion",
+      "hold_action": "Halte-Aktion",
+      "double_tap_action": "Doppeltipp-Aktion"
+    },
+    "slider": {
+      "title": "Schieberegler",
+      "direction": "Richtung",
+      "background": "Hintergrund",
+      "min_value": "Min-Wert",
+      "max_value": "Max-Wert",
+      "transition": "Übergang (s)",
+      "use_brightness": "Helligkeit benutzen",
+      "show_track": "Spur anzeigen",
+      "disable_sliding": "Schieben deaktivieren",
+      "immediate_update": "Sofort aktualisieren",
+      "tap_action": "Tap-Aktion",
+      "hold_action": "Halte-Aktion",
+      "double_tap_action": "Doppeltipp-Aktion"
+    },
+    "action_button": {
+      "title": "Aktions-Knopf",
+      "mode": "Modus",
+      "icon": "Icon",
+      "show_button": "Knopf anzeigen",
+      "show_spinner": "Spinner anzeigen",
+      "tap_action": "Tap-Aktion",
+      "hold_action": "Halte-Aktion",
+      "double_tap_action": "Doppeltipp-Aktion"
+    }
+  },
+  "state": {
+    "off": "Aus",
+    "on": "An"
+  },
+  "direction": {
+    "left-right": "Links nach Rechts",
+    "right-left": "Rechts nach Links",
+    "top-bottom": "Oben nach Unten",
+    "bottom-top": "Unten nach Oben"
+  },
+  "background": {
+    "striped": "Gestreift",
+    "gradient": "Farbverlauf",
+    "solid": "Einfarbig",
+    "triangle": "Dreieck",
+    "custom": "Benutzerdefiniert"
+  },
+  "mode": {
+    "toggle": "Umschalter",
+    "custom": "Benutzerdefiniert"
+  },
+  "color_mode": {
+    "label": "Farbmodus",
+    "default": "Standard-Farbe",
+    "state": "Zustandsfarbe",
+    "custom": "Benutzerdefinierte Farbe"
+  }
+}

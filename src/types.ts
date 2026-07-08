@@ -22,6 +22,7 @@ export interface SliderButtonCardConfig extends LovelaceCardConfig {
   theme?: string;
   debug?: boolean;
   compact?: boolean;
+  scale_on_press?: boolean;
 }
 
 export interface ActionButtonConfig {
@@ -59,6 +60,8 @@ export interface SliderConfig {
   show_track?: boolean;
   disable_sliding?: boolean;
   invert?: boolean;
+  immediate_update?: boolean;
+  transition?: number;
   tap_action?: ActionConfig;
   hold_action?: ActionConfig;
   double_tap_action?: ActionConfig;
@@ -136,7 +139,7 @@ export const ActionButtonConfigDefault: ActionButtonConfig = {
 
 export const IconConfigDefault: IconConfig = {
   show: true,
-  color_mode: ColorMode.DEFAULT,
+  color_mode: ColorMode.STATE,
   use_brightness: false,
   tap_action: {
     action: 'more-info'

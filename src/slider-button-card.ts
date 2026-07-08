@@ -54,6 +54,7 @@ console.info(
 export class SliderButtonCard extends LitElement implements LovelaceCard {
   @property({attribute: false}) public hass!: HomeAssistant;
   @state() private config!: SliderButtonCardConfig;
+  @query('ha-card') card;
   @query('.button') button;
   @query('.action') action;
   @query('.slider') slider;
@@ -71,6 +72,14 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
 
   private holdTimer: number | null = null;
   private lastPointerId: number | null = null;
+  private immediateUpdateTimeout: number | null = null;
+
+  // Nach dem Setzen eines Werts kurz den gesetzten Wert halten, bis die Entität ihn
+  // übernommen hat – sonst würde der Slider während der Verzögerung (z.B. langsam
+  // anlaufender Lüfter) auf den noch alten Entitätswert zurückspringen.
+  private settleValue: number | null = null;
+  private settleUntil = 0;
+  private readonly SETTLE_TIME = 2000;
 
   public static async getConfigElement(): Promise<LovelaceCardEditor> {
     return document.createElement('slider-button-card-editor');
@@ -135,7 +144,7 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
     // Slider mitten im Drag auf den echten Wert zurückspringen (render() zeigt bei
     // gehaltenem Lock den gezogenen Wert an).
     if (!this.ctrl.originalValueLock) {
-      this.updateValue(this.ctrl.value, false);
+      this.updateValue(this.displayValue(), false);
     }
     const oldHass = changedProps.get('hass') as HomeAssistant | undefined;
     const oldConfig = changedProps.get('config') as
@@ -163,7 +172,7 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
     // Solange nicht aktiv gezogen wird, den angezeigten Wert live mit der Entität
     // synchronisieren – so zeigen Slider UND Label (Prozent-Zahl) immer den aktuellen Stand.
     if (!this.ctrl.originalValueLock) {
-      this.ctrl.targetValue = this.ctrl.value;
+      this.ctrl.targetValue = this.displayValue();
     }
 
     const { config, ctrl } = this;
@@ -178,10 +187,11 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
             'hide-state': !config.show_state,
             'hide-action': !config.action_button?.show,
             compact: config.compact === true,
+            'scale-on-press': config.scale_on_press === true,
           })}"
           data-mode="${config.slider?.direction}"
         >
-          <div class="button 
+          <div class="button
             ${classMap({ off: ctrl.isOff, unavailable: ctrl.isUnavailable })}"
             data-mode="${config.slider?.direction}"
             style=${styleMap({
@@ -190,6 +200,7 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
               '--slider-color': ctrl.style.slider.color,
               '--icon-filter': ctrl.style.icon.filter,
               '--icon-color': ctrl.style.icon.color,
+              '--slider-thumb-transition-duration': `${config.slider?.transition ?? 0.2}s`,
             })}
           >
             <div class="slider"
@@ -471,10 +482,29 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
 
 
 
+  /**
+   * Wert, den der Slider im Ruhezustand anzeigen soll: normalerweise der aktuelle
+   * Entitätswert. Kurz nach dem Setzen (Settle-Fenster) halten wir aber den gerade
+   * gesetzten Wert, bis die Entität ihn übernommen hat – sonst würde der Slider bei
+   * langsamen Entitäten (z.B. anlaufender Lüfter) kurz auf den alten Wert zurückspringen.
+   */
+  private displayValue(): number {
+    if (this.settleValue !== null && this.ctrl.value !== this.settleValue && Date.now() < this.settleUntil) {
+      return this.settleValue;
+    }
+    this.settleValue = null;
+    return this.ctrl.value;
+  }
+
   private setStateValue(value: number): void {
     this.ctrl.log('setStateValue', value);
+    this.settleValue = value;
+    this.settleUntil = Date.now() + this.SETTLE_TIME;
     this.updateValue(value, false);
     this.ctrl.value = value;
+    // Nach Ablauf der Settle-Zeit erneut rendern, damit wieder mit der Entität
+    // synchronisiert wird, falls bis dahin kein hass-Update kam.
+    window.setTimeout(() => this.requestUpdate(), this.SETTLE_TIME + 50);
   }
 
   private updateValue(value: number, changing = true): void {
@@ -534,6 +564,10 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
 
     this.lastPointerId = event.pointerId;
     this.slider.setPointerCapture(event.pointerId);
+    this._clearImmediateUpdate();
+    if (this.config.scale_on_press) {
+      this.card.classList.add('pressed');
+    }
 
     this.holdTimer = window.setTimeout(() => {
       if (!this.everLeftMaxDist) {
@@ -606,6 +640,25 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
       // Während des Ziehens rendert Lit nicht von selbst neu → Label (Prozent-Zahl)
       // per requestUpdate aktualisieren; der Slider folgt über --slider-value ohnehin live.
       this.requestUpdate();
+      this._scheduleImmediateUpdate();
+    }
+  }
+
+  private _scheduleImmediateUpdate(): void {
+    if (!this.config.slider?.immediate_update || this.immediateUpdateTimeout) return;
+
+    this.immediateUpdateTimeout = window.setTimeout(() => {
+      this.immediateUpdateTimeout = null;
+      if (this.everLeftMaxDist) {
+        this.ctrl.value = this.ctrl.targetValue;
+      }
+    }, 300);
+  }
+
+  private _clearImmediateUpdate(): void {
+    if (this.immediateUpdateTimeout) {
+      clearTimeout(this.immediateUpdateTimeout);
+      this.immediateUpdateTimeout = null;
     }
   }
 
@@ -622,6 +675,8 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
     }
 
     this.slider.style.cursor = 'pointer';
+    this._clearImmediateUpdate();
+    this.card.classList.remove('pressed');
     this.setStateValue(this.ctrl.targetValue);
     this.slider.releasePointerCapture(event.pointerId);
     this.ctrl.originalValueLock = false;
@@ -662,6 +717,8 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
 
     this.slider.style.cursor = 'pointer';
     this.everLeftMaxDist = false;
+    this._clearImmediateUpdate();
+    this.card.classList.remove('pressed');
     this.updateValue(this.ctrl.value, false);
     this.slider.releasePointerCapture(event.pointerId);
     this.ctrl.originalValueLock = false;
@@ -707,6 +764,12 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
         mask-image: radial-gradient(white, black);
         transition: all 0.2s ease-in-out;
         touch-action: pan-y;
+      }
+      ha-card.scale-on-press {
+        transition: transform 0.1s ease-out;
+      }
+      ha-card.scale-on-press.pressed {
+        transform: scale(0.98);
       }
       .slider[data-mode="top-bottom"],
       .slider[data-mode="bottom-top"] {

@@ -6,6 +6,7 @@ import { customElement, property, state } from 'lit/decorators.js';
 import { ActionConfig, HomeAssistant, LovelaceCardEditor, computeDomain, fireEvent } from './ha-helpers';
 import { ActionButtonConfig, ActionButtonConfigDefault, ActionButtonMode, Domain, IconConfig, IconConfigDefault, SliderBackground, SliderButtonCardConfig, SliderConfig, SliderConfigDefault, SliderDirection, ColorMode } from './types';
 import { applyPatch, getEnumValues, getSliderDefaultForEntity } from './utils';
+import { localize, setLanguage } from './localize/localize';
 
 @customElement('slider-button-card-editor')
 export class SliderButtonCardEditor extends LitElement implements LovelaceCardEditor {
@@ -109,17 +110,46 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
     `;
   }
 
+  protected _renderNumberSelector(
+    configValue: string,
+    label: string,
+    value: number | undefined,
+    step?: number,
+  ): TemplateResult | void {
+    if (!this._config) {
+      return;
+    }
+
+    return html`
+      <ha-selector
+        .hass=${this.hass}
+        .selector=${{
+          number: {
+            mode: 'box',
+            step: step ?? 1,
+          },
+        }}
+        label=${label}
+        .value=${value}
+        .configValue=${configValue}
+        @value-changed=${this._valueChangedSelect}
+      >
+      </ha-selector>
+    `;
+  }
+
   protected render(): TemplateResult | void {
     if (!this.hass) {
       return html``;
     }
-    
+    setLanguage(this.hass);
+
     return html`
       <div class="card-config">
         <div class="tabs">
           <div class="tab">
             <input type="checkbox" id="entity" class="tab-checkbox">
-            <label class="tab-label" for="entity">General</label>
+            <label class="tab-label" for="entity">${localize('tabs.general.title')}</label>
             <div class="tab-content">
               <ha-selector
                 .hass=${this.hass}
@@ -128,46 +158,53 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
                     domain: getEnumValues(Domain),
                   }
                 }}
-                label="Entity"
+                label="${localize('tabs.general.entity')}"
                 .value=${this._entity}
                 .configValue=${'entity'}
                 @value-changed=${this._valueChangedEntity}
               ></ha-selector>
-              
+
               <ha-textfield
-                label="Name"
+                label="${localize('tabs.general.name')}"
                 .value=${this._name}
                 .placeholder=${this._name || this.hass.states[this._entity]?.attributes?.friendly_name}
                 .configValue=${'name'}
                 @input=${this._valueChanged}
               ></ha-textfield>
-              ${this._renderOptionSelector(`attribute`, this._entityAttributes, 'Attribute', this._attribute)}
+              ${this._renderOptionSelector(`attribute`, this._entityAttributes, localize('tabs.general.attribute'), this._attribute)}
               <div class="side-by-side">
-                <ha-formfield label="Show Name">
+                <ha-formfield label="${localize('tabs.general.show_name')}">
                   <ha-switch
                     .checked=${this._show_name}
                     .configValue=${'show_name'}
                     @change=${this._valueChanged}
                   ></ha-switch>
                 </ha-formfield>
-                <ha-formfield label="Show State">
+                <ha-formfield label="${localize('tabs.general.show_state')}">
                   <ha-switch
                     .checked=${this._show_state}
                     .configValue=${'show_state'}
                     @change=${this._valueChanged}
                   ></ha-switch>
                 </ha-formfield>
-                <ha-formfield label="Show Attribute">
+                <ha-formfield label="${localize('tabs.general.show_attribute')}">
                   <ha-switch
                     .checked=${this._show_attribute}
                     .configValue=${'show_attribute'}
                     @change=${this._valueChanged}
                   ></ha-switch>
                 </ha-formfield>
-                <ha-formfield label="Compact Mode">
+                <ha-formfield label="${localize('tabs.general.compact')}">
                   <ha-switch
                     .checked=${this._compact}
                     .configValue=${'compact'}
+                    @change=${this._valueChanged}
+                  ></ha-switch>
+                </ha-formfield>
+                <ha-formfield label="${localize('tabs.general.scale_on_press')}">
+                  <ha-switch
+                    .checked=${this._config?.scale_on_press === true}
+                    .configValue=${'scale_on_press'}
                     @change=${this._valueChanged}
                   ></ha-switch>
                 </ha-formfield>
@@ -177,27 +214,25 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
 
           <div class="tab">
             <input type="checkbox" id="icon" class="tab-checkbox">
-            <label class="tab-label" for="icon">Icon</label>
+            <label class="tab-label" for="icon">${localize('tabs.icon.title')}</label>
             <div class="tab-content">
               <ha-icon-picker
                 .hass=${this.hass}
                 .value=${this._icon.icon}
                 .configValue=${"icon.icon"}
-                .label=${this.hass.localize(
-                  "ui.dialogs.helper_settings.generic.icon"
-                )}
+                .label=${localize('tabs.icon.icon')}
                 @value-changed=${this._valueChanged}
               ></ha-icon-picker>
               ${this.renderColorMode('icon')}
               <div class="side-by-side">
-                <ha-formfield label="Show Icon">
+                <ha-formfield label="${localize('tabs.icon.show_icon')}">
                   <ha-switch
                     .checked=${this._icon.show}
                     .configValue=${'icon.show'}
                     @change=${this._valueChanged}
                   ></ha-switch>
                 </ha-formfield>
-                <ha-formfield label="Use Brightness">
+                <ha-formfield label="${localize('tabs.icon.use_brightness')}">
                   <ha-switch
                     .checked=${this._icon.use_brightness}
                     .configValue=${'icon.use_brightness'}
@@ -210,7 +245,7 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
                 .selector=${{
                   ui_action: {}
                 }}
-            label="Tap Action"
+            label="${localize('tabs.icon.tap_action')}"
                 .value=${this._icon.tap_action}
                 .required=${false}
                 .configValue=${"icon.tap_action"}
@@ -221,7 +256,7 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
                 .selector=${{
                   ui_action: {}
                 }}
-            label="Hold Action"
+            label="${localize('tabs.icon.hold_action')}"
                 .value=${this._icon.hold_action}
                 .required=${false}
                 .configValue=${"icon.hold_action"}
@@ -232,7 +267,7 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
                 .selector=${{
                   ui_action: {}
                 }}
-            label="Double Tap Action"
+            label="${localize('tabs.icon.double_tap_action')}"
                 .value=${this._icon.double_tap_action}
                 .required=${false}
                 .configValue=${"icon.double_tap_action"}
@@ -243,64 +278,64 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
           
           <div class="tab">
             <input type="checkbox" id="slider" class="tab-checkbox">
-            <label class="tab-label" for="slider">Slider</label>
+            <label class="tab-label" for="slider">${localize('tabs.slider.title')}</label>
             <div class="tab-content">
               <div class="side-by-side">
                 ${this._renderOptionSelector(
                   `slider.direction`,
                   this.directions.map(direction => {
-                    return {'value': direction, 'label': direction}
-                  }), 'Direction',
+                    return {'value': direction, 'label': localize(`direction.${direction}`)}
+                  }), localize('tabs.slider.direction'),
                   this._slider.direction || ''
                 )}
                 ${this._renderOptionSelector(
                   `slider.background`,
                   this.backgrounds.map(background => {
-                    return {'value': background, 'label': background}
-                  }), 'Background',
+                    return {'value': background, 'label': localize(`background.${background}`)}
+                  }), localize('tabs.slider.background'),
                   this._slider.background || ''
                 )}
               </div>
               ${this.renderColorMode('slider')}
-              <div class="side-by-side">
-                <ha-textfield
-                  label="Min Value"
-                  type="number"
-                  .value=${this._slider.min_value?.toString() ?? ''}
-                  .configValue=${'slider.min_value'}
-                  @input=${this._valueChanged}
-                ></ha-textfield>
-                <ha-textfield
-                  label="Max Value"
-                  type="number"
-                  .value=${this._slider.max_value?.toString() ?? ''}
-                  .configValue=${'slider.max_value'}
-                  @input=${this._valueChanged}
-                ></ha-textfield>
+              <div class="side-by-side number-row">
+                ${this._renderNumberSelector('slider.min_value', localize('tabs.slider.min_value'), this._slider.min_value)}
+                ${this._renderNumberSelector('slider.max_value', localize('tabs.slider.max_value'), this._slider.max_value)}
+              </div>
+              <div class="side-by-side number-row">
+                ${this._renderNumberSelector('slider.transition', localize('tabs.slider.transition'), this._slider.transition, 0.05)}
               </div>
               <div class="side-by-side">
                 ${this.renderBrightness('slider')}
-                <ha-formfield label="Show Track">
+                <ha-formfield label="${localize('tabs.slider.show_track')}">
                   <ha-switch
                     .checked=${this._slider.show_track}
                     .configValue=${'slider.show_track'}
                     @change=${this._valueChanged}
                   ></ha-switch>
                 </ha-formfield>
-                <ha-formfield label="Disable Sliding">
+              </div>
+              <div class="side-by-side">
+                <ha-formfield label="${localize('tabs.slider.disable_sliding')}">
                   <ha-switch
                     .checked=${this._slider.disable_sliding}
                     .configValue=${'slider.disable_sliding'}
                     @change=${this._valueChanged}
-                  ></mwc-switch>
-                </mwc-formfield>
+                  ></ha-switch>
+                </ha-formfield>
+                <ha-formfield label="${localize('tabs.slider.immediate_update')}">
+                  <ha-switch
+                    .checked=${this._slider.immediate_update === true}
+                    .configValue=${'slider.immediate_update'}
+                    @change=${this._valueChanged}
+                  ></ha-switch>
+                </ha-formfield>
               </div>
               <ha-selector
                 .hass=${this.hass}
                 .selector=${{
                   ui_action: {}
                 }}
-            label="Tap Action"
+            label="${localize('tabs.slider.tap_action')}"
                 .value=${this._slider.tap_action}
                 .required=${false}
                 .configValue=${"slider.tap_action"}
@@ -311,7 +346,7 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
                 .selector=${{
                   ui_action: {}
                 }}
-            label="Hold Action"
+            label="${localize('tabs.slider.hold_action')}"
                 .value=${this._slider.hold_action}
                 .required=${false}
                 .configValue=${"slider.hold_action"}
@@ -322,7 +357,7 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
                 .selector=${{
                   ui_action: {}
                 }}
-            label="Double Tap Action"
+            label="${localize('tabs.slider.double_tap_action')}"
                 .value=${this._slider.double_tap_action}
                 .required=${false}
                 .configValue=${"slider.double_tap_action"}
@@ -333,17 +368,17 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
           
           <div class="tab">
             <input type="checkbox" id="action" class="tab-checkbox">
-            <label class="tab-label" for="action">Action Button</label>
+            <label class="tab-label" for="action">${localize('tabs.action_button.title')}</label>
             <div class="tab-content">
               <div class="side-by-side">
-                <ha-formfield label="Show Button">
+                <ha-formfield label="${localize('tabs.action_button.show_button')}">
                   <ha-switch
                     .checked=${this._action_button.show}
                     .configValue=${'action_button.show'}
                     @change=${this._valueChanged}
                   ></ha-switch>
                 </ha-formfield>
-                <ha-formfield label="Show Spinner">
+                <ha-formfield label="${localize('tabs.action_button.show_spinner')}">
                   <ha-switch
                     .checked=${this._action_button.show_spinner}
                     .configValue=${'action_button.show_spinner'}
@@ -356,7 +391,7 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
                 .value=${this._action_button.icon}
                 .placeholder=${this._action_button.icon || 'mdi:power'}
                 .configValue=${"action_button.icon"}
-            label="Icon"
+            label="${localize('tabs.action_button.icon')}"
                 @value-changed=${this._valueChanged}
               >
               </ha-icon-picker>
@@ -365,7 +400,7 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
                 .selector=${{
                   ui_action: {}
                 }}
-            label="Tap Action"
+            label="${localize('tabs.action_button.tap_action')}"
                 .value=${this._action_button.tap_action}
                 .required=${false}
                 .configValue=${"action_button.tap_action"}
@@ -376,7 +411,7 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
                 .selector=${{
                   ui_action: {}
                 }}
-            label="Hold Action"
+            label="${localize('tabs.action_button.hold_action')}"
                 .value=${this._action_button.hold_action}
                 .required=${false}
                 .configValue=${"action_button.hold_action"}
@@ -387,7 +422,7 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
                 .selector=${{
                   ui_action: {}
                 }}
-            label="Double Tap Action"
+            label="${localize('tabs.action_button.double_tap_action')}"
                 .value=${this._action_button.double_tap_action}
                 .required=${false}
                 .configValue=${"action_button.double_tap_action"}
@@ -403,7 +438,7 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
   protected renderBrightness(path: string): TemplateResult | void {
     const item = this[`_${path}`];
     return html`
-      <ha-formfield label="Use Brightness">
+      <ha-formfield label="${localize(`tabs.${path}.use_brightness`)}">
         <ha-switch
           .checked=${item.use_brightness}
           .configValue="${path}.use_brightness"
@@ -420,8 +455,8 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
         ${this._renderOptionSelector(
           `${path}.color_mode`,
           this.colorModes.map(color_mode => {
-            return {'value': color_mode, 'label': color_mode}
-          }), 'Color Mode',
+            return {'value': color_mode, 'label': localize(`color_mode.${color_mode}`)}
+          }), localize('color_mode.label'),
           item.color_mode || ColorMode.DEFAULT
         )}
         ${item.color_mode === ColorMode.CUSTOM ? html`
@@ -461,7 +496,7 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
   private _valueChangedSelect(ev): void {
     const target = ev.target;
     const value = ev.detail.value;
-    if (!value) {
+    if (value === undefined || value === null || value === '') {
       return;
     }
     this._changeValue(target.configValue, value);
@@ -533,6 +568,32 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
         width: 50%;
         flex-flow: column wrap;
         box-sizing: border-box;
+      }
+      /* Custom-Elements sind per Default display:inline -> margin-bottom wirkt nicht.
+         Als Block darstellen, damit der Zeilenabstand greift. */
+      .tab-content > ha-selector,
+      .tab-content > ha-textfield,
+      .tab-content > ha-icon-picker {
+        display: block;
+      }
+      /* Einheitlicher 8px-Abstand zwischen allen "Zeilen" eines Tabs, egal ob
+         side-by-side-Gruppe oder einzelnes Element (Selector/Textfield/Picker). */
+      .tab-content > ha-selector,
+      .tab-content > ha-textfield,
+      .tab-content > ha-icon-picker,
+      .tab-content > .side-by-side {
+        margin-bottom: 8px;
+      }
+      /* ha-input setzt padding-bottom über --ha-space-2 (HA-Spacing-Token, 8px),
+         das wir hier nicht brauchen; zusätzlicher negativer Margin zieht die
+         Zeile ganz an den nächsten Block heran. Muss die generische Regel oben
+         überstimmen -> gleiche Spezifität, aber später in der Datei. */
+      .tab-content > .number-row {
+        --ha-space-2: 0px;
+        margin-bottom: -12px;
+      }
+      .tab-content > *:last-child {
+        margin-bottom: 0;
       }
       .side-by-side > *:last-child {
         flex: 1;
