@@ -33,6 +33,27 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
     return true;
   }
 
+  protected updated(): void {
+    this._fixInputWidths();
+  }
+
+  // wa-input füllt seinen ha-input-Host im flex-Layout (z.B. Farbzeile) nicht
+  // von selbst und wirkt dadurch zu schmal. Da wa-input im Shadow-DOM von
+  // ha-input liegt, erreichen unsere Editor-Styles es nicht - die width:100%-
+  // Regel muss direkt in dessen Shadow-Root injiziert werden.
+  private _fixInputWidths(): void {
+    this.shadowRoot?.querySelectorAll('ha-input').forEach((el: any) => {
+      const root = el.shadowRoot as ShadowRoot | null;
+      if (!root || root.querySelector('style[data-sbc-wainput]')) {
+        return;
+      }
+      const style = document.createElement('style');
+      style.setAttribute('data-sbc-wainput', '');
+      style.textContent = 'wa-input { width: 100%; }';
+      root.appendChild(style);
+    });
+  }
+
   get _name(): string {
     return this._config?.name || '';
   }
@@ -146,291 +167,284 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
 
     return html`
       <div class="card-config">
-        <div class="tabs">
-          <div class="tab">
-            <input type="checkbox" id="entity" class="tab-checkbox">
-            <label class="tab-label" for="entity">${localize('tabs.general.title')}</label>
-            <div class="tab-content">
-              <ha-selector
-                .hass=${this.hass}
-                .selector=${{
-                  entity: {
-                    domain: getEnumValues(Domain),
-                  }
-                }}
-                label="${localize('tabs.general.entity')}"
-                .value=${this._entity}
-                .configValue=${'entity'}
-                @value-changed=${this._valueChangedEntity}
-              ></ha-selector>
+        <div class="panel-content top-fields">
+          <ha-selector
+            .hass=${this.hass}
+            .selector=${{
+              entity: {
+                domain: getEnumValues(Domain),
+              }
+            }}
+            label="${localize('tabs.general.entity')}"
+            .value=${this._entity}
+            .configValue=${'entity'}
+            @value-changed=${this._valueChangedEntity}
+          ></ha-selector>
 
-              <ha-textfield
-                label="${localize('tabs.general.name')}"
-                .value=${this._name}
-                .placeholder=${this._name || this.hass.states[this._entity]?.attributes?.friendly_name}
-                .configValue=${'name'}
-                @input=${this._valueChanged}
-              ></ha-textfield>
-              ${this._renderOptionSelector(`attribute`, this._entityAttributes, localize('tabs.general.attribute'), this._attribute)}
-              <div class="side-by-side">
-                <ha-formfield label="${localize('tabs.general.show_name')}">
-                  <ha-switch
-                    .checked=${this._show_name}
-                    .configValue=${'show_name'}
-                    @change=${this._valueChanged}
-                  ></ha-switch>
-                </ha-formfield>
-                <ha-formfield label="${localize('tabs.general.show_state')}">
-                  <ha-switch
-                    .checked=${this._show_state}
-                    .configValue=${'show_state'}
-                    @change=${this._valueChanged}
-                  ></ha-switch>
-                </ha-formfield>
-                <ha-formfield label="${localize('tabs.general.show_attribute')}">
-                  <ha-switch
-                    .checked=${this._show_attribute}
-                    .configValue=${'show_attribute'}
-                    @change=${this._valueChanged}
-                  ></ha-switch>
-                </ha-formfield>
-                <ha-formfield label="${localize('tabs.general.compact')}">
-                  <ha-switch
-                    .checked=${this._compact}
-                    .configValue=${'compact'}
-                    @change=${this._valueChanged}
-                  ></ha-switch>
-                </ha-formfield>
-                <ha-formfield label="${localize('tabs.general.scale_on_press')}">
-                  <ha-switch
-                    .checked=${this._config?.scale_on_press === true}
-                    .configValue=${'scale_on_press'}
-                    @change=${this._valueChanged}
-                  ></ha-switch>
-                </ha-formfield>
-              </div>
-            </div>
-          </div>
-
-          <div class="tab">
-            <input type="checkbox" id="icon" class="tab-checkbox">
-            <label class="tab-label" for="icon">${localize('tabs.icon.title')}</label>
-            <div class="tab-content">
-              <ha-icon-picker
-                .hass=${this.hass}
-                .value=${this._icon.icon}
-                .configValue=${"icon.icon"}
-                .label=${localize('tabs.icon.icon')}
-                @value-changed=${this._valueChanged}
-              ></ha-icon-picker>
-              ${this.renderColorMode('icon')}
-              <div class="side-by-side">
-                <ha-formfield label="${localize('tabs.icon.show_icon')}">
-                  <ha-switch
-                    .checked=${this._icon.show}
-                    .configValue=${'icon.show'}
-                    @change=${this._valueChanged}
-                  ></ha-switch>
-                </ha-formfield>
-                <ha-formfield label="${localize('tabs.icon.use_brightness')}">
-                  <ha-switch
-                    .checked=${this._icon.use_brightness}
-                    .configValue=${'icon.use_brightness'}
-                    @change=${this._valueChanged}
-                  ></ha-switch>
-                </ha-formfield>
-              </div>
-              <ha-selector
-                .hass=${this.hass}
-                .selector=${{
-                  ui_action: {}
-                }}
-            label="${localize('tabs.icon.tap_action')}"
-                .value=${this._icon.tap_action}
-                .required=${false}
-                .configValue=${"icon.tap_action"}
-                @value-changed=${this._valueChangedSelect}
-              ></ha-selector>
-              <ha-selector
-                .hass=${this.hass}
-                .selector=${{
-                  ui_action: {}
-                }}
-            label="${localize('tabs.icon.hold_action')}"
-                .value=${this._icon.hold_action}
-                .required=${false}
-                .configValue=${"icon.hold_action"}
-                @value-changed=${this._valueChangedSelect}
-              ></ha-selector>
-              <ha-selector
-                .hass=${this.hass}
-                .selector=${{
-                  ui_action: {}
-                }}
-            label="${localize('tabs.icon.double_tap_action')}"
-                .value=${this._icon.double_tap_action}
-                .required=${false}
-                .configValue=${"icon.double_tap_action"}
-                @value-changed=${this._valueChangedSelect}
-              ></ha-selector>
-            </div>
-          </div>
-          
-          <div class="tab">
-            <input type="checkbox" id="slider" class="tab-checkbox">
-            <label class="tab-label" for="slider">${localize('tabs.slider.title')}</label>
-            <div class="tab-content">
-              <div class="side-by-side">
-                ${this._renderOptionSelector(
-                  `slider.direction`,
-                  this.directions.map(direction => {
-                    return {'value': direction, 'label': localize(`direction.${direction}`)}
-                  }), localize('tabs.slider.direction'),
-                  this._slider.direction || ''
-                )}
-                ${this._renderOptionSelector(
-                  `slider.background`,
-                  this.backgrounds.map(background => {
-                    return {'value': background, 'label': localize(`background.${background}`)}
-                  }), localize('tabs.slider.background'),
-                  this._slider.background || ''
-                )}
-              </div>
-              ${this.renderColorMode('slider')}
-              <div class="side-by-side number-row">
-                ${this._renderNumberSelector('slider.min_value', localize('tabs.slider.min_value'), this._slider.min_value)}
-                ${this._renderNumberSelector('slider.max_value', localize('tabs.slider.max_value'), this._slider.max_value)}
-              </div>
-              <div class="side-by-side number-row">
-                ${this._renderNumberSelector('slider.transition', localize('tabs.slider.transition'), this._slider.transition, 0.05)}
-              </div>
-              <div class="side-by-side">
-                ${this.renderBrightness('slider')}
-                <ha-formfield label="${localize('tabs.slider.show_track')}">
-                  <ha-switch
-                    .checked=${this._slider.show_track}
-                    .configValue=${'slider.show_track'}
-                    @change=${this._valueChanged}
-                  ></ha-switch>
-                </ha-formfield>
-              </div>
-              <div class="side-by-side">
-                <ha-formfield label="${localize('tabs.slider.disable_sliding')}">
-                  <ha-switch
-                    .checked=${this._slider.disable_sliding}
-                    .configValue=${'slider.disable_sliding'}
-                    @change=${this._valueChanged}
-                  ></ha-switch>
-                </ha-formfield>
-                <ha-formfield label="${localize('tabs.slider.immediate_update')}">
-                  <ha-switch
-                    .checked=${this._slider.immediate_update === true}
-                    .configValue=${'slider.immediate_update'}
-                    @change=${this._valueChanged}
-                  ></ha-switch>
-                </ha-formfield>
-              </div>
-              <ha-selector
-                .hass=${this.hass}
-                .selector=${{
-                  ui_action: {}
-                }}
-            label="${localize('tabs.slider.tap_action')}"
-                .value=${this._slider.tap_action}
-                .required=${false}
-                .configValue=${"slider.tap_action"}
-                @value-changed=${this._valueChangedSelect}
-              ></ha-selector>
-              <ha-selector
-                .hass=${this.hass}
-                .selector=${{
-                  ui_action: {}
-                }}
-            label="${localize('tabs.slider.hold_action')}"
-                .value=${this._slider.hold_action}
-                .required=${false}
-                .configValue=${"slider.hold_action"}
-                @value-changed=${this._valueChangedSelect}
-              ></ha-selector>
-              <ha-selector
-                .hass=${this.hass}
-                .selector=${{
-                  ui_action: {}
-                }}
-            label="${localize('tabs.slider.double_tap_action')}"
-                .value=${this._slider.double_tap_action}
-                .required=${false}
-                .configValue=${"slider.double_tap_action"}
-                @value-changed=${this._valueChangedSelect}
-              ></ha-selector>
-            </div>
-          </div>
-          
-          <div class="tab">
-            <input type="checkbox" id="action" class="tab-checkbox">
-            <label class="tab-label" for="action">${localize('tabs.action_button.title')}</label>
-            <div class="tab-content">
-              <div class="side-by-side">
-                <ha-formfield label="${localize('tabs.action_button.show_button')}">
-                  <ha-switch
-                    .checked=${this._action_button.show}
-                    .configValue=${'action_button.show'}
-                    @change=${this._valueChanged}
-                  ></ha-switch>
-                </ha-formfield>
-                <ha-formfield label="${localize('tabs.action_button.show_spinner')}">
-                  <ha-switch
-                    .checked=${this._action_button.show_spinner}
-                    .configValue=${'action_button.show_spinner'}
-                    @change=${this._valueChanged}
-                  ></ha-switch>
-                </ha-formfield>
-              </div>
-              <ha-icon-picker
-                .hass=${this.hass}
-                .value=${this._action_button.icon}
-                .placeholder=${this._action_button.icon || 'mdi:power'}
-                .configValue=${"action_button.icon"}
-            label="${localize('tabs.action_button.icon')}"
-                @value-changed=${this._valueChanged}
-              >
-              </ha-icon-picker>
-              <ha-selector
-                .hass=${this.hass}
-                .selector=${{
-                  ui_action: {}
-                }}
-            label="${localize('tabs.action_button.tap_action')}"
-                .value=${this._action_button.tap_action}
-                .required=${false}
-                .configValue=${"action_button.tap_action"}
-                @value-changed=${this._valueChangedSelect}
-              ></ha-selector>
-              <ha-selector
-                .hass=${this.hass}
-                .selector=${{
-                  ui_action: {}
-                }}
-            label="${localize('tabs.action_button.hold_action')}"
-                .value=${this._action_button.hold_action}
-                .required=${false}
-                .configValue=${"action_button.hold_action"}
-                @value-changed=${this._valueChangedSelect}
-              ></ha-selector>
-              <ha-selector
-                .hass=${this.hass}
-                .selector=${{
-                  ui_action: {}
-                }}
-            label="${localize('tabs.action_button.double_tap_action')}"
-                .value=${this._action_button.double_tap_action}
-                .required=${false}
-                .configValue=${"action_button.double_tap_action"}
-                @value-changed=${this._valueChangedSelect}
-              ></ha-selector>
-            </div>
-          </div>
+          <ha-input
+            label="${localize('tabs.general.name')}"
+            .value=${this._name}
+            .placeholder=${this._name || this.hass.states[this._entity]?.attributes?.friendly_name}
+            .configValue=${'name'}
+            @input=${this._valueChanged}
+          ></ha-input>
         </div>
+
+        <ha-expansion-panel outlined .header=${localize('tabs.general.title')}>
+          <div class="panel-content">
+            ${this._renderOptionSelector(`attribute`, this._entityAttributes, localize('tabs.general.attribute'), this._attribute)}
+            <div class="side-by-side">
+              <ha-formfield label="${localize('tabs.general.show_name')}">
+                <ha-switch
+                  .checked=${this._show_name}
+                  .configValue=${'show_name'}
+                  @change=${this._valueChanged}
+                ></ha-switch>
+              </ha-formfield>
+              <ha-formfield label="${localize('tabs.general.show_state')}">
+                <ha-switch
+                  .checked=${this._show_state}
+                  .configValue=${'show_state'}
+                  @change=${this._valueChanged}
+                ></ha-switch>
+              </ha-formfield>
+              <ha-formfield label="${localize('tabs.general.show_attribute')}">
+                <ha-switch
+                  .checked=${this._show_attribute}
+                  .configValue=${'show_attribute'}
+                  @change=${this._valueChanged}
+                ></ha-switch>
+              </ha-formfield>
+              <ha-formfield label="${localize('tabs.general.compact')}">
+                <ha-switch
+                  .checked=${this._compact}
+                  .configValue=${'compact'}
+                  @change=${this._valueChanged}
+                ></ha-switch>
+              </ha-formfield>
+              <ha-formfield label="${localize('tabs.general.scale_on_press')}">
+                <ha-switch
+                  .checked=${this._config?.scale_on_press === true}
+                  .configValue=${'scale_on_press'}
+                  @change=${this._valueChanged}
+                ></ha-switch>
+              </ha-formfield>
+            </div>
+          </div>
+        </ha-expansion-panel>
+
+        <ha-expansion-panel outlined .header=${localize('tabs.icon.title')}>
+          <div class="panel-content">
+            <ha-icon-picker
+              .hass=${this.hass}
+              .value=${this._icon.icon}
+              .configValue=${"icon.icon"}
+              .label=${localize('tabs.icon.icon')}
+              @value-changed=${this._valueChanged}
+            ></ha-icon-picker>
+            ${this.renderColorMode('icon')}
+            <div class="side-by-side">
+              <ha-formfield label="${localize('tabs.icon.show_icon')}">
+                <ha-switch
+                  .checked=${this._icon.show}
+                  .configValue=${'icon.show'}
+                  @change=${this._valueChanged}
+                ></ha-switch>
+              </ha-formfield>
+              <ha-formfield label="${localize('tabs.icon.use_brightness')}">
+                <ha-switch
+                  .checked=${this._icon.use_brightness}
+                  .configValue=${'icon.use_brightness'}
+                  @change=${this._valueChanged}
+                ></ha-switch>
+              </ha-formfield>
+            </div>
+            <ha-selector
+              .hass=${this.hass}
+              .selector=${{
+                ui_action: {}
+              }}
+          label="${localize('tabs.icon.tap_action')}"
+              .value=${this._icon.tap_action}
+              .required=${false}
+              .configValue=${"icon.tap_action"}
+              @value-changed=${this._valueChangedSelect}
+            ></ha-selector>
+            <ha-selector
+              .hass=${this.hass}
+              .selector=${{
+                ui_action: {}
+              }}
+          label="${localize('tabs.icon.hold_action')}"
+              .value=${this._icon.hold_action}
+              .required=${false}
+              .configValue=${"icon.hold_action"}
+              @value-changed=${this._valueChangedSelect}
+            ></ha-selector>
+            <ha-selector
+              .hass=${this.hass}
+              .selector=${{
+                ui_action: {}
+              }}
+          label="${localize('tabs.icon.double_tap_action')}"
+              .value=${this._icon.double_tap_action}
+              .required=${false}
+              .configValue=${"icon.double_tap_action"}
+              @value-changed=${this._valueChangedSelect}
+            ></ha-selector>
+          </div>
+        </ha-expansion-panel>
+
+        <ha-expansion-panel outlined .header=${localize('tabs.slider.title')}>
+          <div class="panel-content">
+            <div class="side-by-side">
+              ${this._renderOptionSelector(
+                `slider.direction`,
+                this.directions.map(direction => {
+                  return {'value': direction, 'label': localize(`direction.${direction}`)}
+                }), localize('tabs.slider.direction'),
+                this._slider.direction || ''
+              )}
+              ${this._renderOptionSelector(
+                `slider.background`,
+                this.backgrounds.map(background => {
+                  return {'value': background, 'label': localize(`background.${background}`)}
+                }), localize('tabs.slider.background'),
+                this._slider.background || ''
+              )}
+            </div>
+            ${this.renderColorMode('slider')}
+            <div class="side-by-side number-row">
+              ${this._renderNumberSelector('slider.min_value', localize('tabs.slider.min_value'), this._slider.min_value)}
+              ${this._renderNumberSelector('slider.max_value', localize('tabs.slider.max_value'), this._slider.max_value)}
+            </div>
+            <div class="side-by-side number-row">
+              ${this._renderNumberSelector('slider.transition', localize('tabs.slider.transition'), this._slider.transition, 0.05)}
+            </div>
+            <div class="side-by-side">
+              ${this.renderBrightness('slider')}
+              <ha-formfield label="${localize('tabs.slider.show_track')}">
+                <ha-switch
+                  .checked=${this._slider.show_track}
+                  .configValue=${'slider.show_track'}
+                  @change=${this._valueChanged}
+                ></ha-switch>
+              </ha-formfield>
+            </div>
+            <div class="side-by-side">
+              <ha-formfield label="${localize('tabs.slider.disable_sliding')}">
+                <ha-switch
+                  .checked=${this._slider.disable_sliding}
+                  .configValue=${'slider.disable_sliding'}
+                  @change=${this._valueChanged}
+                ></ha-switch>
+              </ha-formfield>
+              <ha-formfield label="${localize('tabs.slider.immediate_update')}">
+                <ha-switch
+                  .checked=${this._slider.immediate_update === true}
+                  .configValue=${'slider.immediate_update'}
+                  @change=${this._valueChanged}
+                ></ha-switch>
+              </ha-formfield>
+            </div>
+            <ha-selector
+              .hass=${this.hass}
+              .selector=${{
+                ui_action: {}
+              }}
+          label="${localize('tabs.slider.tap_action')}"
+              .value=${this._slider.tap_action}
+              .required=${false}
+              .configValue=${"slider.tap_action"}
+              @value-changed=${this._valueChangedSelect}
+            ></ha-selector>
+            <ha-selector
+              .hass=${this.hass}
+              .selector=${{
+                ui_action: {}
+              }}
+          label="${localize('tabs.slider.hold_action')}"
+              .value=${this._slider.hold_action}
+              .required=${false}
+              .configValue=${"slider.hold_action"}
+              @value-changed=${this._valueChangedSelect}
+            ></ha-selector>
+            <ha-selector
+              .hass=${this.hass}
+              .selector=${{
+                ui_action: {}
+              }}
+          label="${localize('tabs.slider.double_tap_action')}"
+              .value=${this._slider.double_tap_action}
+              .required=${false}
+              .configValue=${"slider.double_tap_action"}
+              @value-changed=${this._valueChangedSelect}
+            ></ha-selector>
+          </div>
+        </ha-expansion-panel>
+
+        <ha-expansion-panel outlined .header=${localize('tabs.action_button.title')}>
+          <div class="panel-content">
+            <div class="side-by-side">
+              <ha-formfield label="${localize('tabs.action_button.show_button')}">
+                <ha-switch
+                  .checked=${this._action_button.show}
+                  .configValue=${'action_button.show'}
+                  @change=${this._valueChanged}
+                ></ha-switch>
+              </ha-formfield>
+              <ha-formfield label="${localize('tabs.action_button.show_spinner')}">
+                <ha-switch
+                  .checked=${this._action_button.show_spinner}
+                  .configValue=${'action_button.show_spinner'}
+                  @change=${this._valueChanged}
+                ></ha-switch>
+              </ha-formfield>
+            </div>
+            <ha-icon-picker
+              .hass=${this.hass}
+              .value=${this._action_button.icon}
+              .placeholder=${this._action_button.icon || 'mdi:power'}
+              .configValue=${"action_button.icon"}
+          label="${localize('tabs.action_button.icon')}"
+              @value-changed=${this._valueChanged}
+            >
+            </ha-icon-picker>
+            <ha-selector
+              .hass=${this.hass}
+              .selector=${{
+                ui_action: {}
+              }}
+          label="${localize('tabs.action_button.tap_action')}"
+              .value=${this._action_button.tap_action}
+              .required=${false}
+              .configValue=${"action_button.tap_action"}
+              @value-changed=${this._valueChangedSelect}
+            ></ha-selector>
+            <ha-selector
+              .hass=${this.hass}
+              .selector=${{
+                ui_action: {}
+              }}
+          label="${localize('tabs.action_button.hold_action')}"
+              .value=${this._action_button.hold_action}
+              .required=${false}
+              .configValue=${"action_button.hold_action"}
+              @value-changed=${this._valueChangedSelect}
+            ></ha-selector>
+            <ha-selector
+              .hass=${this.hass}
+              .selector=${{
+                ui_action: {}
+              }}
+          label="${localize('tabs.action_button.double_tap_action')}"
+              .value=${this._action_button.double_tap_action}
+              .required=${false}
+              .configValue=${"action_button.double_tap_action"}
+              @value-changed=${this._valueChangedSelect}
+            ></ha-selector>
+          </div>
+        </ha-expansion-panel>
       </div>
     `;
   }
@@ -460,13 +474,27 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
           item.color_mode || ColorMode.DEFAULT
         )}
         ${item.color_mode === ColorMode.CUSTOM ? html`
-          <input
-            type="color"
-            class="color-swatch"
-            .value=${this._toHexColor(item.color)}
+          <ha-input
+            label="${localize(`tabs.${path}.color`)}"
+            .value=${item.color || ''}
+            placeholder="#ffffff"
             .configValue="${path}.color"
-            @input=${this._colorChanged}
-          />
+            @input=${this._valueChanged}
+          >
+            <div
+              slot="end"
+              class="color-swatch-wrapper"
+              style="background: ${this._toHexColor(item.color)}"
+            >
+              <input
+                type="color"
+                class="color-swatch-input"
+                .value=${this._toHexColor(item.color)}
+                .configValue="${path}.color"
+                @input=${this._colorChanged}
+              />
+            </div>
+          </ha-input>
         ` : ''}
       </div>
     `;
@@ -529,7 +557,10 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
 
   // Farb-Input: gezielt `.value` lesen. Ein natives <input type="color"> hat immer eine
   // `checked`-Property (Default false), daher nicht den generischen _valueChanged verwenden.
+  // stopPropagation, da dieses Element im "end"-Slot des umgebenden ha-input sitzt -
+  // ohne das würde sein input-Event auch den generischen Handler des ha-input triggern.
   private _colorChanged(ev): void {
+    ev.stopPropagation();
     this._changeValue(ev.target.configValue, ev.target.value);
   }
 
@@ -553,7 +584,7 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
 
   static get styles(): CSSResult {
     return css`
-      ha-textfield {
+      ha-input {
         width: 100%;
       }
       ha-switch {
@@ -571,61 +602,72 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
       }
       /* Custom-Elements sind per Default display:inline -> margin-bottom wirkt nicht.
          Als Block darstellen, damit der Zeilenabstand greift. */
-      .tab-content > ha-selector,
-      .tab-content > ha-textfield,
-      .tab-content > ha-icon-picker {
+      .panel-content > ha-selector,
+      .panel-content > ha-input,
+      .panel-content > ha-icon-picker {
         display: block;
       }
-      /* Einheitlicher 8px-Abstand zwischen allen "Zeilen" eines Tabs, egal ob
-         side-by-side-Gruppe oder einzelnes Element (Selector/Textfield/Picker). */
-      .tab-content > ha-selector,
-      .tab-content > ha-textfield,
-      .tab-content > ha-icon-picker,
-      .tab-content > .side-by-side {
+      /* Einheitlicher 8px-Abstand zwischen allen "Zeilen" eines Panels, egal ob
+         side-by-side-Gruppe oder einzelnes Element (Selector/Input/Picker). */
+      .panel-content > ha-selector,
+      .panel-content > ha-input,
+      .panel-content > ha-icon-picker,
+      .panel-content > .side-by-side {
         margin-bottom: 8px;
       }
       /* ha-input setzt padding-bottom über --ha-space-2 (HA-Spacing-Token, 8px),
          das wir hier nicht brauchen; zusätzlicher negativer Margin zieht die
          Zeile ganz an den nächsten Block heran. Muss die generische Regel oben
          überstimmen -> gleiche Spezifität, aber später in der Datei. */
-      .tab-content > .number-row {
+      .panel-content > .number-row {
         --ha-space-2: 0px;
         margin-bottom: -12px;
       }
-      .tab-content > *:last-child {
+      .panel-content > *:last-child {
         margin-bottom: 0;
       }
       .side-by-side > *:last-child {
         flex: 1;
         padding-right: 0;
       }
-      /* Color-Mode-Dropdown und Farbwähler oben am Raster ausrichten */
+      /* Die Farbzeile nutzt dasselbe .side-by-side-Layout wie Richtung/Hintergrund
+         und Min/Max (Dropdown allein -> volle Breite, mit Hex-Feld -> 50/50), damit
+         die Spaltenbreiten exakt zu den übrigen Zeilen passen. Nur der Feinschliff
+         bleibt hier: ha-input reserviert per Default vertikalen Platz für einen
+         (nie angezeigten) Hilfetext über --ha-space-2 -> auf 0, sonst entsteht eine
+         zu große Lücke unter der Zeile. */
       .color-row {
-        align-items: flex-start;
+        --ha-space-2: 0px;
       }
-      /* Nativer Farbwähler als volle Grid-Zelle, gleiche Höhe wie die ha-select-Felder */
-      .color-swatch {
+      /* Hinweis: Das innere wa-input füllt seinen ha-input-Host im flex-Layout
+         nicht von selbst und muss width:100% bekommen. Es liegt aber im
+         Shadow-DOM von ha-input, das unsere Styles hier nicht erreichen -> die
+         Regel wird per JS in dessen Shadow-Root injiziert (_fixInputWidths). */
+      /* Farbkreis im "end"-Slot des Hex-Textfelds: das eigentliche <input
+         type="color"> bleibt unsichtbar (aber klickbar/öffnet den nativen
+         Picker) und liegt über einem sauber gerenderten CSS-Kreis - direktes
+         Styling des nativen Swatch via border-radius erzeugt in Chrome/Firefox
+         sichtbare helle Pixel am Rand, v.a. bei dunklen Farben. */
+      .color-swatch-wrapper {
+        position: relative;
+        flex-shrink: 0;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        box-shadow: inset 0 0 0 1px var(--divider-color, rgba(0, 0, 0, 0.15));
+        overflow: hidden;
+      }
+      .color-swatch-input {
+        position: absolute;
+        inset: 0;
         width: 100%;
-        height: 56px;
+        height: 100%;
         padding: 0;
         border: none;
-        border-radius: 4px;
-        background: none;
+        opacity: 0;
         cursor: pointer;
-        box-sizing: border-box;
         -webkit-appearance: none;
         appearance: none;
-      }
-      .color-swatch::-webkit-color-swatch-wrapper {
-        padding: 0;
-      }
-      .color-swatch::-webkit-color-swatch {
-        border: none;
-        border-radius: 4px;
-      }
-      .color-swatch::-moz-color-swatch {
-        border: none;
-        border-radius: 4px;
       }
       .suffix {
         margin: 0 8px;
@@ -634,53 +676,17 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
         padding: 15px;
         border: 1px solid var(--primary-text-color)
       }
-      .tabs {
-        overflow: hidden;        
+      .card-config > ha-expansion-panel,
+      .card-config > .top-fields {
+        display: block;
+        margin-bottom: 8px;
       }
-      .tab {
-        width: 100%;
-        color: var(--primary-text-color);
-        overflow: hidden;
+      /* ha-expansion-panel reserviert per Default nur horizontal Platz
+         (0 8px). Die zusätzliche Luft oben/unten soll nur sichtbar sein,
+         wenn die Kategorie tatsächlich aufgeklappt ist. */
+      ha-expansion-panel[expanded] {
+        --expansion-panel-content-padding: 12px 8px 16px;
       }
-      .tab-label {
-        display: flex;
-        justify-content: space-between;
-        padding: 1em 1em 1em 0em;
-        border-bottom: 1px solid var(--secondary-text-color);
-        font-weight: bold;
-        cursor: pointer;
-      }
-      .tab-label:hover {
-        /*background: #1a252f;*/
-      }
-      .tab-label::after {
-        content: "❯";
-        width: 1em;
-        height: 1em;
-        text-align: center;
-        transition: all 0.35s;
-      }
-      .tab-content {
-        max-height: 0;
-        padding: 0 1em;
-        background: var(--secondary-background-color);
-        transition: all 0.35s;
-      }
-      input.tab-checkbox {
-        position: absolute;
-        opacity: 0;
-        z-index: -1;
-      }      
-      input.tab-checkbox:checked + .tab-label {
-        border-color: var(--accent-color);
-      }
-      input.tab-checkbox:checked + .tab-label::after {
-        transform: rotate(90deg);
-      }
-      input.tab-checkbox:checked ~ .tab-content {
-        max-height: none;
-        padding: 1em;
-      }      
     `;
   }
 }

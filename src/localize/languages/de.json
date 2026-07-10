@@ -22,6 +22,7 @@
       "icon": "Icon",
       "show_icon": "Icon anzeigen",
       "use_brightness": "Helligkeit benutzen",
+      "color": "Farbe",
       "tap_action": "Tap-Aktion",
       "hold_action": "Halte-Aktion",
       "double_tap_action": "Doppeltipp-Aktion"
@@ -34,6 +35,7 @@
       "max_value": "Max-Wert",
       "transition": "Übergang (s)",
       "use_brightness": "Helligkeit benutzen",
+      "color": "Farbe",
       "show_track": "Spur anzeigen",
       "disable_sliding": "Schieben deaktivieren",
       "immediate_update": "Sofort aktualisieren",
@@ -77,6 +79,6 @@
     "label": "Farbmodus",
     "default": "Standard-Farbe",
     "state": "Zustandsfarbe",
-    "custom": "Benutzerdefinierte Farbe"
+    "custom": "Eigene Farbe"
   }
 }

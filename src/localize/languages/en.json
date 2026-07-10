@@ -22,6 +22,7 @@
       "icon": "Icon",
       "show_icon": "Show Icon",
       "use_brightness": "Use Brightness",
+      "color": "Color",
       "tap_action": "Tap Action",
       "hold_action": "Hold Action",
       "double_tap_action": "Double Tap Action"
@@ -34,6 +35,7 @@
       "max_value": "Max Value",
       "transition": "Transition (s)",
       "use_brightness": "Use Brightness",
+      "color": "Color",
       "show_track": "Show Track",
       "disable_sliding": "Disable Sliding",
       "immediate_update": "Immediate Update",
