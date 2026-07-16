@@ -368,7 +368,11 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
       case "toggle": {
         const entity = actionConfig.entity || this.config.entity;
         if (entity) {
-          const [domain, name] = entity.split(".");
+          // Show expected state instantly; self-corrects once hass confirms the real state.
+          if (entity === this.config.entity) {
+            this.setStateValue(this.ctrl.toggleValue, false);
+          }
+          const [domain] = entity.split(".");
           this.hass.callService(domain, "toggle", { entity_id: entity });
         }
         break;
@@ -498,12 +502,14 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
     return this.ctrl.value;
   }
 
-  private setStateValue(value: number): void {
+  private setStateValue(value: number, applyService = true): void {
     this.ctrl.log('setStateValue', value);
     this.settleValue = value;
     this.settleUntil = Date.now() + this.SETTLE_TIME;
     this.updateValue(value, false);
-    this.ctrl.value = value;
+    if (applyService) {
+      this.ctrl.value = value;
+    }
     // Nach Ablauf der Settle-Zeit erneut rendern, damit wieder mit der Entität
     // synchronisiert wird, falls bis dahin kein hass-Update kam.
     window.setTimeout(() => this.requestUpdate(), this.SETTLE_TIME + 50);
