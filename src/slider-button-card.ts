@@ -368,10 +368,6 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
       case "toggle": {
         const entity = actionConfig.entity || this.config.entity;
         if (entity) {
-          // Show expected state instantly; self-corrects once hass confirms the real state.
-          if (entity === this.config.entity) {
-            this.setStateValue(this.ctrl.toggleValue, false);
-          }
           const [domain] = entity.split(".");
           this.hass.callService(domain, "toggle", { entity_id: entity });
         }
@@ -502,14 +498,12 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
     return this.ctrl.value;
   }
 
-  private setStateValue(value: number, applyService = true): void {
+  private setStateValue(value: number): void {
     this.ctrl.log('setStateValue', value);
     this.settleValue = value;
     this.settleUntil = Date.now() + this.SETTLE_TIME;
     this.updateValue(value, false);
-    if (applyService) {
-      this.ctrl.value = value;
-    }
+    this.ctrl.value = value;
     // Nach Ablauf der Settle-Zeit erneut rendern, damit wieder mit der Entität
     // synchronisiert wird, falls bis dahin kein hass-Update kam.
     window.setTimeout(() => this.requestUpdate(), this.SETTLE_TIME + 50);
@@ -685,7 +679,6 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
     this.slider.style.cursor = 'pointer';
     this._clearImmediateUpdate();
     this.card.classList.remove('pressed');
-    this.setStateValue(this.ctrl.targetValue);
     this.slider.releasePointerCapture(event.pointerId);
     this.ctrl.originalValueLock = false;
     this.ctrl.clickPositionLock = false;
@@ -699,6 +692,9 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
     }
 
     if (this.everLeftMaxDist) {
+      // Only commit (with the settle window) after an actual drag - on a plain tap
+      // the settle window would just hold the old value and delay the real update.
+      this.setStateValue(this.ctrl.targetValue);
       this.everLeftMaxDist = false;
       return;
     }
