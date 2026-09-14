@@ -10,6 +10,7 @@ import { Controller } from './controllers/controller';
 import { ControllerFactory } from './controllers/get-controller';
 import './editor';
 import type { SliderButtonCardConfig } from './types';
+import { entityNamesChanged } from './entity-name';
 import { ActionButtonConfigDefault, Domain, IconConfigDefault, SliderDirection } from './types';
 import { getEnumValues, getSliderDefaultForEntity, normalize } from './utils';
 
@@ -136,6 +137,12 @@ export class SliderButtonCard extends LitElement implements LovelaceCard {
       oldHass.language !== this.hass.language
     ) {
       this.ctrl.log('shouldUpdate', 'forced true');
+      return true;
+    }
+    // The name resolves against the entity/device/area/floor registries, and HA
+    // swaps the real formatEntityName in asynchronously once translations load.
+    // Neither changes an entity state, so hasConfigOrEntityChanged misses both.
+    if (entityNamesChanged(oldHass, this.hass)) {
       return true;
     }
     return hasConfigOrEntityChanged(this, changedProps, false);

@@ -5,6 +5,7 @@ import { customElement, property, state } from 'lit/decorators.js';
 
 import { ActionConfig, HomeAssistant, LovelaceCardEditor, computeDomain, fireEvent } from './ha-helpers';
 import { ActionButtonConfig, ActionButtonConfigDefault, ActionButtonMode, Domain, IconConfig, IconConfigDefault, SliderBackground, SliderButtonCardConfig, SliderConfig, SliderConfigDefault, SliderDirection, ColorMode } from './types';
+import { supportsEntityNameSelector } from './entity-name';
 import { applyPatch, getEnumValues, getSliderDefaultForEntity } from './utils';
 import { localize, setLanguage } from './localize/localize';
 
@@ -54,7 +55,7 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
     });
   }
 
-  get _name(): string {
+  get _name(): EntityName {
     return this._config?.name || '';
   }
 
@@ -181,13 +182,27 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
             @value-changed=${this._valueChangedEntity}
           ></ha-selector>
 
-          <ha-input
-            label="${localize('tabs.general.name')}"
-            .value=${this._name}
-            .placeholder=${this._name || this.hass.states[this._entity]?.attributes?.friendly_name}
-            .configValue=${'name'}
-            @input=${this._valueChanged}
-          ></ha-input>
+          ${supportsEntityNameSelector(this.hass)
+            ? html`
+                <ha-selector
+                  .hass=${this.hass}
+                  .selector=${{ entity_name: {} }}
+                  .context=${{ entity: this._entity }}
+                  .label="${localize('tabs.general.name')}"
+                  .value=${this._name || undefined}
+                  .configValue=${'name'}
+                  @value-changed=${this._valueChangedName}
+                ></ha-selector>
+              `
+            : html`
+                <ha-input
+                  label="${localize('tabs.general.name')}"
+                  .value=${typeof this._name === 'string' ? this._name : ''}
+                  .placeholder=${this.hass.states[this._entity]?.attributes?.friendly_name}
+                  .configValue=${'name'}
+                  @input=${this._valueChanged}
+                ></ha-input>
+              `}
         </div>
 
         <ha-expansion-panel outlined .header=${localize('tabs.general.title')}>
@@ -493,6 +508,14 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
     if (this.hass === undefined) return;
     if (this._config === undefined) return;
     this._initialized = true;
+  }
+
+  // ha-selector reports through ev.detail rather than target.value, and an
+  // empty name has to clear the option rather than store an empty string.
+  private _valueChangedName(ev): void {
+    ev.stopPropagation();
+    const value = ev.detail?.value;
+    this._changeValue('name', value === undefined || value === null ? '' : value);
   }
 
   private _valueChangedSelect(ev): void {

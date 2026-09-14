@@ -2,6 +2,7 @@ import { computeStateDomain, domainIcon, HomeAssistant } from '../ha-helpers';
 import { HassEntity } from 'home-assistant-js-websocket';
 import { SliderBackground, SliderButtonCardConfig, SliderDirection } from '../types';
 import { getLightColorBasedOnTemperature, normalize, percentageToValue, toPercentage } from '../utils';
+import { computeEntityName } from '../entity-name';
 
 export interface Style {
   icon: ObjectStyle;
@@ -49,7 +50,7 @@ export abstract class Controller {
   }
 
   get name(): string {
-    return this._config.name ? this._config.name : this.stateObj?.attributes?.friendly_name ? this.stateObj.attributes.friendly_name : '';
+    return computeEntityName(this._hass, this.stateObj, this._config.name);
   }
 
   get icon(): string {
