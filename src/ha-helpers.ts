@@ -2,6 +2,7 @@ export interface HomeAssistant {
   states: Record<string, any>;
   themes: any;
   language: string;
+  config?: { version: string };
   localize: (key: string) => string;
   callService: (domain: string, service: string, data?: any) => void;
 }

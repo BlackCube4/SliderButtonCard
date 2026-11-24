@@ -4,7 +4,7 @@ import { CSSResult, LitElement, TemplateResult, css, html } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 
 import { ActionConfig, HomeAssistant, LovelaceCardEditor, computeDomain, fireEvent } from './ha-helpers';
-import { ActionButtonConfig, ActionButtonConfigDefault, ActionButtonMode, Domain, IconConfig, IconConfigDefault, SliderBackground, SliderButtonCardConfig, SliderConfig, SliderConfigDefault, SliderDirection, ColorMode } from './types';
+import { ActionButtonConfig, ActionButtonConfigDefault, ActionButtonMode, Domain, EntityName, IconConfig, IconConfigDefault, SliderBackground, SliderButtonCardConfig, SliderConfig, SliderConfigDefault, SliderDirection, ColorMode } from './types';
 import { supportsEntityNameSelector } from './entity-name';
 import { applyPatch, getEnumValues, getSliderDefaultForEntity } from './utils';
 import { localize, setLanguage } from './localize/localize';
