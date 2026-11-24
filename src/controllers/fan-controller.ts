@@ -39,12 +39,23 @@ export class FanController extends Controller {
   get label(): string {
     if (this.percentage > 0) {
       if (this.hasSlider) {
+        // Fans with a few fixed speeds read better as the speed number (3) than as
+        // the percentage HA uses internally (33%).
+        const speedCount = this.speedCount;
+        if (speedCount > 1 && speedCount <= 20) {
+          return `${Math.round((this.percentage * speedCount) / 100)}`;
+        }
         return `${this.percentage}%`
       } else {
         return this._hass.localize('component.fan.entity_component._.state.on');
       }
     }
     return this._hass.localize('component.fan.entity_component._.state.off');
+  }
+
+  get speedCount(): number {
+    const step = this.stateObj.attributes.percentage_step;
+    return step > 0 ? Math.round(100 / step) : 0;
   }
 
   get hasSlider(): boolean {
