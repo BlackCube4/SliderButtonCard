@@ -194,41 +194,31 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
           <div class="panel-content">
             ${this._renderOptionSelector(`attribute`, this._entityAttributes, localize('tabs.general.attribute'), this._attribute)}
             <div class="side-by-side">
-              <ha-formfield label="${localize('tabs.general.show_name')}">
-                <ha-switch
-                  .checked=${this._show_name}
-                  .configValue=${'show_name'}
-                  @change=${this._valueChanged}
-                ></ha-switch>
-              </ha-formfield>
-              <ha-formfield label="${localize('tabs.general.show_state')}">
-                <ha-switch
-                  .checked=${this._show_state}
-                  .configValue=${'show_state'}
-                  @change=${this._valueChanged}
-                ></ha-switch>
-              </ha-formfield>
-              <ha-formfield label="${localize('tabs.general.show_attribute')}">
-                <ha-switch
-                  .checked=${this._show_attribute}
-                  .configValue=${'show_attribute'}
-                  @change=${this._valueChanged}
-                ></ha-switch>
-              </ha-formfield>
-              <ha-formfield label="${localize('tabs.general.compact')}">
-                <ha-switch
-                  .checked=${this._compact}
-                  .configValue=${'compact'}
-                  @change=${this._valueChanged}
-                ></ha-switch>
-              </ha-formfield>
-              <ha-formfield label="${localize('tabs.general.scale_on_press')}">
-                <ha-switch
-                  .checked=${this._config?.scale_on_press === true}
-                  .configValue=${'scale_on_press'}
-                  @change=${this._valueChanged}
-                ></ha-switch>
-              </ha-formfield>
+              <ha-switch
+                .checked=${this._show_name}
+                .configValue=${'show_name'}
+                @change=${this._valueChanged}
+              >${localize('tabs.general.show_name')}</ha-switch>
+              <ha-switch
+                .checked=${this._show_state}
+                .configValue=${'show_state'}
+                @change=${this._valueChanged}
+              >${localize('tabs.general.show_state')}</ha-switch>
+              <ha-switch
+                .checked=${this._show_attribute}
+                .configValue=${'show_attribute'}
+                @change=${this._valueChanged}
+              >${localize('tabs.general.show_attribute')}</ha-switch>
+              <ha-switch
+                .checked=${this._compact}
+                .configValue=${'compact'}
+                @change=${this._valueChanged}
+              >${localize('tabs.general.compact')}</ha-switch>
+              <ha-switch
+                .checked=${this._config?.scale_on_press === true}
+                .configValue=${'scale_on_press'}
+                @change=${this._valueChanged}
+              >${localize('tabs.general.scale_on_press')}</ha-switch>
             </div>
           </div>
         </ha-expansion-panel>
@@ -244,20 +234,16 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
             ></ha-icon-picker>
             ${this.renderColorMode('icon')}
             <div class="side-by-side">
-              <ha-formfield label="${localize('tabs.icon.show_icon')}">
-                <ha-switch
-                  .checked=${this._icon.show}
-                  .configValue=${'icon.show'}
-                  @change=${this._valueChanged}
-                ></ha-switch>
-              </ha-formfield>
-              <ha-formfield label="${localize('tabs.icon.use_brightness')}">
-                <ha-switch
-                  .checked=${this._icon.use_brightness}
-                  .configValue=${'icon.use_brightness'}
-                  @change=${this._valueChanged}
-                ></ha-switch>
-              </ha-formfield>
+              <ha-switch
+                .checked=${this._icon.show}
+                .configValue=${'icon.show'}
+                @change=${this._valueChanged}
+              >${localize('tabs.icon.show_icon')}</ha-switch>
+              <ha-switch
+                .checked=${this._icon.use_brightness}
+                .configValue=${'icon.use_brightness'}
+                @change=${this._valueChanged}
+              >${localize('tabs.icon.use_brightness')}</ha-switch>
             </div>
             <ha-selector
               .hass=${this.hass}
@@ -323,29 +309,23 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
             </div>
             <div class="side-by-side">
               ${this.renderBrightness('slider')}
-              <ha-formfield label="${localize('tabs.slider.show_track')}">
-                <ha-switch
-                  .checked=${this._slider.show_track}
-                  .configValue=${'slider.show_track'}
-                  @change=${this._valueChanged}
-                ></ha-switch>
-              </ha-formfield>
+              <ha-switch
+                .checked=${this._slider.show_track}
+                .configValue=${'slider.show_track'}
+                @change=${this._valueChanged}
+              >${localize('tabs.slider.show_track')}</ha-switch>
             </div>
             <div class="side-by-side">
-              <ha-formfield label="${localize('tabs.slider.disable_sliding')}">
-                <ha-switch
-                  .checked=${this._slider.disable_sliding}
-                  .configValue=${'slider.disable_sliding'}
-                  @change=${this._valueChanged}
-                ></ha-switch>
-              </ha-formfield>
-              <ha-formfield label="${localize('tabs.slider.immediate_update')}">
-                <ha-switch
-                  .checked=${this._slider.immediate_update === true}
-                  .configValue=${'slider.immediate_update'}
-                  @change=${this._valueChanged}
-                ></ha-switch>
-              </ha-formfield>
+              <ha-switch
+                .checked=${this._slider.disable_sliding}
+                .configValue=${'slider.disable_sliding'}
+                @change=${this._valueChanged}
+              >${localize('tabs.slider.disable_sliding')}</ha-switch>
+              <ha-switch
+                .checked=${this._slider.immediate_update === true}
+                .configValue=${'slider.immediate_update'}
+                @change=${this._valueChanged}
+              >${localize('tabs.slider.immediate_update')}</ha-switch>
             </div>
             <ha-selector
               .hass=${this.hass}
@@ -386,20 +366,16 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
         <ha-expansion-panel outlined .header=${localize('tabs.action_button.title')}>
           <div class="panel-content">
             <div class="side-by-side">
-              <ha-formfield label="${localize('tabs.action_button.show_button')}">
-                <ha-switch
-                  .checked=${this._action_button.show}
-                  .configValue=${'action_button.show'}
-                  @change=${this._valueChanged}
-                ></ha-switch>
-              </ha-formfield>
-              <ha-formfield label="${localize('tabs.action_button.show_spinner')}">
-                <ha-switch
-                  .checked=${this._action_button.show_spinner}
-                  .configValue=${'action_button.show_spinner'}
-                  @change=${this._valueChanged}
-                ></ha-switch>
-              </ha-formfield>
+              <ha-switch
+                .checked=${this._action_button.show}
+                .configValue=${'action_button.show'}
+                @change=${this._valueChanged}
+              >${localize('tabs.action_button.show_button')}</ha-switch>
+              <ha-switch
+                .checked=${this._action_button.show_spinner}
+                .configValue=${'action_button.show_spinner'}
+                @change=${this._valueChanged}
+              >${localize('tabs.action_button.show_spinner')}</ha-switch>
             </div>
             <ha-icon-picker
               .hass=${this.hass}
@@ -452,13 +428,11 @@ export class SliderButtonCardEditor extends LitElement implements LovelaceCardEd
   protected renderBrightness(path: string): TemplateResult | void {
     const item = this[`_${path}`];
     return html`
-      <ha-formfield label="${localize(`tabs.${path}.use_brightness`)}">
-        <ha-switch
-          .checked=${item.use_brightness}
-          .configValue="${path}.use_brightness"
-          @change=${this._valueChanged}
-        ></ha-switch>
-      </ha-formfield>
+      <ha-switch
+        .checked=${item.use_brightness}
+        .configValue="${path}.use_brightness"
+        @change=${this._valueChanged}
+      >${localize(`tabs.${path}.use_brightness`)}</ha-switch>
     `;
   }
 
